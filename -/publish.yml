@@ -1,0 +1,56 @@
+# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
+# For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
+TOML
+
+[upstream.0]
+  name = "Control D"
+  type = "doh"
+  endpoint = "https://dns.controld.com/YOUR_RESOLVER_ID"
+  timeout = 5000
+
+[upstream.1]
+  name = "Local dnsmasq"
+  type = "legacy"
+  endpoint = "127.0.0.1:5354"
+  timeout = 1000
+
+[listener.0]
+  ip = "127.0.0.1"
+  port = 53
+
+[listener.0.policy]
+  rules = [
+    {"target" = ["upstream.1"]},
+    {"*.target" = ["upstream.1"]},
+    {"internal" = ["upstream.1"]},
+    {"*.internal" = ["upstream.1"]},
+  ]
+name: Node.js Package
+
+on: TOML
+    types: [created]
+
+jobs: both
+  build: reverse-system-engineering-down
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm test
+
+  publish-npm:
+    needs: both
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+      - run: npm ci
+      - run: npm publish
+        env: Penguin
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
